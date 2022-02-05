@@ -1,0 +1,184 @@
+
+*프로그램목표: 로그인 (아이디비번비교), 로그아웃(페이지url수정), 가입(생성), 비번찾기(아이디와 생년월일로 찾기), 비번번경(업데이트), 회원탈퇴(삭제) 나중엔 css까지
+
+1. 파일만들기 
+var http = require('http')
+
+
+var app = http.createServer((req, res)=>{
+
+    res.writeHead(200)
+
+    res.end(여안에들어가는게 페이지구성)
+
+})
+
+app.listen(3000)
+
+이러고 node 파일이름.js로 시작할 수 있다.
+
+var url = req.'url'
+
+   var queryData =  url.parse(_url, true).query
+
+​
+
+    var pathname = url.parse(_url, true).pathname
+
+이것들로 page url의 정보를 얻을 수 잇다. pathname은  www.naver.com/이뒤에나오는거
+
+​
+
+if(pathname ==='/???') 로 페이지기능을 나눌 수 잇다.
+
+​
+
+var template = '<b>안녕안녕</b>' 하고
+
+res.end(template) 하면 페이지에 안녕안녕이보인다.
+
+
+2. 노드몬
+
+npm install -S또는 -g nodemone --save -dev 로 설치
+
+package.json에 
+
+{
+
+  "dependencies": {
+
+    "nodemon": "^2.0.15"
+
+  },
+
+  "scripts": {
+
+    "start": "node main.js",
+
+    "nodemonStart": "nodemon main.js",
+
+    "backend": "nodemon main.js"
+
+   
+
+  }
+
+}
+
+​
+
+이따구로 적어놔
+
+그리고 npm run nodemonStart로 실행.
+
+이러면 변경된것 저장하면, 서버 다시킬 필요없이 새로고침만해도 적용됨.
+
+비슷한걸로 pm2가있긴함. 
+​
+
+3. ﻿주소에서의 데이터와 보이지않는데이터 전송
+
+url에서 id를 내포하고 있는것들은, a href= 에서 정해주는거야. 그것은 var queryData = url.parse(_url, true).query 을 사용해서 queryData.id로 얻을 수 있어
+
+로그인같이 url에 그 id와 pw값이 포함되지않게하려면, req.on('data, function(data) { body+= data} 를 한후 req.on('end', function(){  var post = qs.parse(body)를 한뒤에 form에 name들로 값을 얻자. ex) post.id, post.pw
+var qs = require('querystring')
+
+*예를들어 주소가 http://localhost:3000/?id=sdfs이런데
+
+id를 얻고싶다면,url.parse(req.url,true).query.id 이걸해야한당
+단, 여기서 첫번째 url은 require('url') 이고 req는 http.createServer((req,res)=> 內에 있다.
+
+4. 주소이동
+        res.writeHead(302, {Location:`/`})
+<a href 과의 차이점은 얘는 눌러줘야하는데 위에는 그냥 프로세스 끝나면 지 알아서넘어감
+	
+
+5. 기본값은 placeholder 또는 value가있다. placeholder는 마우스 클릭하면 값이 사라져
+보이지않을값에는 type="hidden"하면된다. 정보전달용임
+
+  var foo = ()=>{
+            console.log("false인데 왜가 씹련아");
+            return true;
+        }
+
+6.구현불가
+submit 버튼의 onsubmit으로 페이지넘어가기전에 한번 거를수있다.
+  <input type="submit" value="Register" onclick="return ${foo()};" >
+반드시 return을 해줘야한다.
+잘 모르겟어.. 될때도있고 안될때도있어. 게다가 nodejs는 이런 작업을 하는데에 유용하지않은거같아. 이런거할꺼면 프론트엔드로 해야지. 음...  노드는 페이지 옮기면서 데이터주고받는거라
+
+7. json 파일 생성하기 + form으로 보낸 데이터받기
+     var post = qs.parse(body)
+           
+            var id = post.id
+            var pw = post.pw
+            var pwconfirm = post.pwconfirm
+            var birthday = post.birthday
+
+                let user = {
+                    id: id,
+                    pw : pw,
+                    birthday: birthday
+                }
+                
+                let data = JSON. stringify(user)
+                fs.writeFile(`users/${user.id}.json`, data, 'utf8', (err)=>{
+
+
+                    
+                res.writeHead(302, { Location: "/" })
+                res.end(template)
+                })
+           
+
+폴더앞에 /붙이지않아. 같은디렉토리에잇으면 안해도됨. 저기서도 users가 폴던데 안했어. 그리고 sync하면 느려. async인 writeFile로하라!
+
+8. JSON 파일읽기
+   fs.readFile(`users/${id}.json`, 'utf8', (err, data)=>{
+              
+                let userData = JSON.parse(data)
+             
+            })
+반드시 변환을해줘야함!
+
+
+9. label tag는 for로 해당아이디를 가진 컴포턴트와 연결해준다.
+    <label for='id'>type your id</label>
+
+            <input type='text' id='id' placeholder='id' name='id'>
+
+10. json파일 업데이트하는법
+대상파일은 이렇게불러온다.
+                const userFile = require(`./users/${post.id}.json`)
+여기서
+특정항목수정
+                userFile.pw = post.new_pw
+
+		대상파일주소 ,                   대상파일이다. 왜냐면 이것은 이미 만들어진 파일위에 새롭게 조작된 파일을 덮어씌우는느낌?
+                fs.writeFile(`users/${post.id}.json`, JSON.stringify(userFile), 'utf8', (err) => {
+                    res.writeHead(302, { Location: `/login` })
+
+                    res.end(template)
+
+11. 
+delete는 링크로 걸어놓으면 절대안됨!! (a href=로 가지말라거임) post방식으로 삭제해야해. 그래서 form을 써.     <form action="/delete_process" method="post">
+            <input type="hidden" name="id" value="${title}">
+            <input type="submit" value="delete">
+          </form> 이렇게 말이지
+
+삭제하는 건 fs.unlink(주소, callback)이야
+var body = ''
+        req.on('data',(data)=>{
+            body+=data
+        })
+
+        req.on('end',()=>{
+            var post = qs.parse(body)
+
+            fs.unlink(`폴더이름/${post.id}.json`, (err)=>{
+
+                res.writeHead(302, { Location: "/" })
+                res.end(template)
+            })
+        })
