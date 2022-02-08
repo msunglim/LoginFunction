@@ -182,3 +182,46 @@ var body = ''
                 res.end(template)
             })
         })
+
+
+12. 보안이슈들 해결
+**npm init으로 package.json을 생성할 수있다. 
+npm install -g 또는 -S sanitize-html 을 설치한다. 이것은 불순한 입력을 걸러줌
+
+그리고그걸 var sanitizedHTML = require('sanitized-html') 이렇게쓰고 
+sanitizedHTML( 대상)이렇게하면 script 테그안에있는내용을 전부삭제한다. 그러나 html tag들은  살려줌.. hr br이런거다되넹
+
+
+허용하고싶은 tag를 정할떄는 2번째 인자를 obj로 주면된다고하는데, 업뎃이됐나 그냥되네
+sanitizedHTML(대상, { allowedTags: ['h1', 'h2'] }  이거없으면 tag는 다 인식이돼. 그런데 이걸하면, 여기에잇는 테그만 ㅇㅈ해줘.
+
+*이거하는이유는 url에 http://localhost:3000/?id=`<script>console.log(ㄴㅇㅁㅇㄹ)</script>` 이렇게하면, 그것을 browers에 표시할때, (예를 들어 id의 값을 표시할때) 실제로 console에서 저게 cosnole.log안의 내용이 출력돼, 그말은 consolelog 외의 다른기능들을 적었다면, 그것들이 실행되는겨. 하지만 그값들로 연산만 한다면 실행되지않아. id=<scirpt>console.log(5)</scirpt>라면, template = `${id}` 이렇게쓰면 실행되겠지만, 그냥 if(queryData.id=='5') 이런걸로는 실행안됨!
+
+*또 req.on('data') req.on('end')로 얻는 데이터는 아무리 그 값이 `<script>console.log(5)</script>` 라도 실행안되네 결국 우리가 조심해야할것은 url을 통해얻는 queryData를 화면상에 표시할때 검열을 해야한다는거야.
+
+내 프로젝트를 예로들면, 로그인한뒤 welcome user.id 이거밖에없었다 왜냐면 url에서 ?id=user.id로 표시하게해놨거든. 그 외에 데이터가 오고가는 와중에 (심지어 form action =/?${queryData.id} 햇음에도, 실행되지않았다. 왜냐면 화면에 표시되는게아니라 서버간의 통신이라 그런갑다.
+ 
+
+
+13. template化
+
+lib 폴더에 template.js만들고 밑에꺼붙여
+var template={
+	a: function(){
+		var a = this.c + 214214 
+		return a
+	},
+	b: function(){
+		this.c = fsdsdfds	
+	},
+	c: ``
+
+}
+
+module.exports = template
+
+
+그리고 사용할곳에서 var template = require('./lib/template.js')로 시작.
+template.a( ) 이렇게 사용가능
+
+이렇게 obj내에서 값들은 this.를 통해서로 사용가능

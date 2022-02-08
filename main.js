@@ -2,7 +2,7 @@ var http = require('http')
 
 var url = require('url')
 var qs = require('querystring')
-
+var html = require('./lib/template.js')
 const fs = require('fs')
 
 var app = http.createServer((req, res) => {
@@ -14,17 +14,20 @@ var app = http.createServer((req, res) => {
     var pathname = url.parse(_url, true).pathname
 
     var template = ``
-
+    var sanitizedID = html.cleanHTML(queryData.id)
     if (pathname === '/') {
 
+        
         template = `
-        <b>Hello Comrade</b>
+        
         <br/>
         `
             + ((queryData.id !== undefined) ?
-                `<a href ='/logout_process'>Logout</a>
+                `
+                <a href ='/logout_process'>Logout</a>
             <form action="/delete_process" method='post'>
-            <input type='hidden' value=${queryData.id} name='id'>
+            <input type='hidden' value=${sanitizedID} name='id'>
+
             <input type='submit' value='Withdraw'>
             </form>`
                 :
@@ -34,18 +37,22 @@ var app = http.createServer((req, res) => {
         if (queryData.id !== undefined) {
             template += `
             <br/>
-            <span>Welcome ${queryData.id}!</span>
+            <span>Welcome ${sanitizedID}!</span>
             `
         }
-        console.log('Id is ?:', queryData.id === undefined)
+       // console.log('Id is ?:', queryData.id === undefined)
         console.log('url data:', url.parse(req.url, true).query)
+
+        html.setHeader("Hello Comrade")
+        var view = html.getHtml(template)
+
         res.writeHead(200)
-        res.end(template)
+        res.end(view)
 
     } else if (pathname === '/login') {
 
         template = `
-        <h1>loginpage</h1>
+       
         <form action='/login_process' method='post'>
         <input type='text' name='id'>
         <br/>
@@ -71,8 +78,11 @@ var app = http.createServer((req, res) => {
             <a href='/find_pw'>Find Password</a>
             `
         }
+
+        html.setHeader('Login Page')
+        var view = html.getHtml(template)
         res.writeHead(200)
-        res.end(template)
+        res.end(view)
 
     } else if (pathname === '/login_process') {
         var body = ``
@@ -85,7 +95,7 @@ var app = http.createServer((req, res) => {
             var post = qs.parse(body)
             var id = post.id
             var pw = post.pw
-
+            console.log("dont need to sanitize",id)
             fs.readFile(`users/${id}.json`, 'utf8', (err, data) => {
                 if (err) {
                     res.writeHead(302, { Location: `/login?notExistID=true` })
@@ -117,7 +127,6 @@ var app = http.createServer((req, res) => {
     else if (pathname === '/find_pw') {
         template = `
        
-        <h1>Find with your id and birthday</h1>
         <form action='/find_pw_process' method='post'>
             <label for='id'>type your id</label>
             <input type='text' id='id' placeholder='id' name='id'>
@@ -135,8 +144,10 @@ var app = http.createServer((req, res) => {
             <b>There is no matched user</b>
             `
         }
+        html.setHeader('Find with your id and birthday')
+        var view = html.getHtml(template)
         res.writeHead(200)
-        res.end(template)
+        res.end(view)
     } else if (pathname === '/find_pw_process') {
         var body = ''
 
@@ -205,8 +216,11 @@ var app = http.createServer((req, res) => {
                 `
         }
 
+        //header can be null !
+        html.setHeader('Set new password')
+        var view = html.getHtml(template)
         res.writeHead(200)
-        res.end(template)
+        res.end(view)
 
 
     } else if (pathname === '/change_pw_process') {
@@ -221,9 +235,8 @@ var app = http.createServer((req, res) => {
 
             if (post.new_pw !== post.new_pw_confirm) {
 
-
                 res.writeHead(302, { Location: `/change_pw?id=${post.id}&unmatchedPW=true` })
-                res.end(template)
+                res.end()
             } else {
                 // console.log('qd', queryData)
                 const userFile = require(`./users/${post.id}.json`)
@@ -233,7 +246,7 @@ var app = http.createServer((req, res) => {
                 fs.writeFile(`users/${post.id}.json`, JSON.stringify(userFile), 'utf8', (err) => {
                     res.writeHead(302, { Location: `/login` })
 
-                    res.end(template)
+                    res.end()
 
 
                 })
@@ -246,7 +259,7 @@ var app = http.createServer((req, res) => {
     else if (pathname === '/register') {
 
         template = `
-        <h1>RegisterPage</h1>
+       
         <br/>
 
         <form action="/register_process" method="post">
@@ -254,7 +267,7 @@ var app = http.createServer((req, res) => {
         <br/>
         <input type="password" name="pw" placeholder="password" id="pw">
         <br/>
-        <input type="password" name="pwconfirm" id =placeholder="Confirm password">
+        <input type="password" name="pwconfirm" id placeholder="Confirm password">
         <br/>
         <input type="date" name="birthday" placeholder="birthday">
         <br/>
@@ -267,8 +280,11 @@ var app = http.createServer((req, res) => {
             template += `Passwords must be equal!`
         }
 
+        html.setHeader('Register Page')
+        var view = html.getHtml(template)
+
         res.writeHead(200)
-        res.end(template)
+        res.end(view)
     } else if (pathname === '/register_process') {
         var body = ''
 
@@ -286,7 +302,7 @@ var app = http.createServer((req, res) => {
             if (pw !== pwconfirm) {
 
                 res.writeHead(302, { Location: "/register?revisit=true" })
-                res.end(template)
+                res.end()
 
             } else {
 
@@ -302,29 +318,29 @@ var app = http.createServer((req, res) => {
 
 
                     res.writeHead(302, { Location: "/" })
-                    res.end(template)
+                    res.end()
                 })
 
             }
         })
 
-    }else if(pathname ==='/delete_process'){
+    } else if (pathname === '/delete_process') {
 
         var body = ''
-        req.on('data',(data)=>{
-            body+=data
+        req.on('data', (data) => {
+            body += data
         })
 
-        req.on('end',()=>{
+        req.on('end', () => {
             var post = qs.parse(body)
             console.log('delete', post)
-            fs.unlink(`users/${post.id}.json`, (err)=>{
+            fs.unlink(`users/${post.id}.json`, (err) => {
 
                 res.writeHead(302, { Location: "/" })
-                res.end(template)
+                res.end()
             })
         })
-      
+
     }
 })
 
